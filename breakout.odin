@@ -1,5 +1,7 @@
 package breakout
 
+import "core:math"
+import "core:math/linalg"
 import rl "vendor:raylib"
 
 SCREEN_SIZE :: 320
@@ -7,11 +9,21 @@ PADDLE_WIDTH :: 50
 PADDLE_HEIGHT :: 6
 PADDLE_POS_Y :: 260
 PADDLE_SPEED :: 200
+BALL_SPEED :: 260
+BALL_RADIUS :: 4
+BALL_START_Y :: 160
 
 paddle_pos_x: f32
 
+ball_pos: rl.Vector2
+ball_dir: rl.Vector2
+
+started: bool
+
 restart :: proc() {
 	paddle_pos_x = SCREEN_SIZE / 2 - PADDLE_WIDTH / 2
+	ball_pos = {SCREEN_SIZE / 2, BALL_START_Y}
+	started = false
 }
 
 main :: proc() {
@@ -22,21 +34,35 @@ main :: proc() {
 	restart()
 
 	for !rl.WindowShouldClose() {
-
+		dt: f32
 		// UPDATE
-		dt := rl.GetFrameTime()
+		if !started {
+			ball_pos = {
+				SCREEN_SIZE / 2 + f32(math.cos(rl.GetTime())) * SCREEN_SIZE / 2.5,
+				BALL_START_Y,
+			}
+			if rl.IsKeyPressed(.SPACE) {
+				paddle_middle := rl.Vector2{paddle_pos_x + PADDLE_WIDTH / 2, PADDLE_POS_Y}
+				ball_to_paddle := paddle_middle - ball_pos
+				ball_dir = linalg.normalize0(ball_to_paddle)
+				started = true
+			}
+		} else {
+			dt = rl.GetFrameTime()
+		}
 
+		ball_pos += ball_dir * BALL_SPEED * dt
 		paddle_move_velocity: f32
 
+		// Movement
 		if rl.IsKeyDown(.LEFT) || rl.IsKeyDown(.A) {
 			paddle_move_velocity -= PADDLE_SPEED
 		}
 		if rl.IsKeyDown(.RIGHT) || rl.IsKeyDown(.D) {
 			paddle_move_velocity += PADDLE_SPEED
 		}
-		if rl.IsKeyPressed(.R) {
-			restart()
-		}
+
+		if rl.IsKeyPressed(.R) {restart()}
 
 		paddle_pos_x += paddle_move_velocity * dt
 		paddle_pos_x = clamp(paddle_pos_x, 0, SCREEN_SIZE - PADDLE_WIDTH)
@@ -60,6 +86,7 @@ main :: proc() {
 		}
 
 		rl.DrawRectangleRec(paddle_rect, {50, 150, 90, 255})
+		rl.DrawCircleV(ball_pos, BALL_RADIUS, {200, 90, 20, 255})
 
 		rl.EndMode2D()
 		rl.EndDrawing()
