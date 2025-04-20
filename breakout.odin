@@ -74,6 +74,10 @@ main :: proc() {
 			ball_dir = reflect(ball_dir, {0, 1})
 		}
 
+		if ball_pos.y > SCREEN_SIZE + BALL_RADIUS * 6 {
+			restart()
+		}
+
 		paddle_move_velocity: f32
 
 		// Movement
