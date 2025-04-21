@@ -101,6 +101,9 @@ main :: proc() {
 	rl.InitWindow(960, 960, "Breakout")
 	rl.SetTargetFPS(60)
 
+	ball_texture := rl.LoadTexture("ball.png")
+	paddle_texture := rl.LoadTexture("paddle.png")
+
 	restart()
 
 	for !rl.WindowShouldClose() {
@@ -236,8 +239,8 @@ main :: proc() {
 
 		rl.BeginMode2D(camera)
 
-		rl.DrawRectangleRec(paddle_rect, {50, 150, 90, 255})
-		rl.DrawCircleV(ball_pos, BALL_RADIUS, {200, 90, 20, 255})
+		rl.DrawTextureV(paddle_texture, {paddle_pos_x, PADDLE_POS_Y}, rl.WHITE)
+		rl.DrawTextureV(ball_texture, ball_pos - {BALL_RADIUS, BALL_RADIUS}, rl.WHITE)
 
 		for x in 0 ..< NUM_BLOCKS_X {
 			for y in 0 ..< NUM_BLOCKS_Y {
