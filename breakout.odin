@@ -69,6 +69,19 @@ reflect :: proc(dir, normal: rl.Vector2) -> rl.Vector2 {
 	return linalg.normalize(new_direction)
 }
 
+
+calc_block_rect :: proc(x, y: int) -> rl.Rectangle {
+	return {f32(20 + x * BLOCK_WIDTH), f32(40 + y * BLOCK_HEIGHT), BLOCK_WIDTH, BLOCK_HEIGHT}
+}
+
+block_exists :: proc(x, y: int) -> bool {
+	if x < 0 || y < 0 || x >= NUM_BLOCKS_X || y >= NUM_BLOCKS_Y {
+		return false
+	}
+
+	return blocks[x][y]
+}
+
 main :: proc() {
 	rl.SetConfigFlags({.VSYNC_HINT})
 	rl.InitWindow(960, 960, "Breakout")
@@ -145,27 +158,56 @@ main :: proc() {
 				collision_normal += {0, -1}
 				ball_pos.y = paddle_rect.y - BALL_RADIUS
 			}
-
 			// Can't this just be a else for the previous if?
 			if previous_ball_pos.y > paddle_rect.y + paddle_rect.height {
 				collision_normal += {0, 1}
 				ball_pos.y = paddle_rect.y + paddle_rect.height + BALL_RADIUS
 			}
-
 			if previous_ball_pos.x < paddle_rect.x {
 				collision_normal += {-1, 0}
 			}
-
 			if previous_ball_pos.x > paddle_rect.x + paddle_rect.width {
 				collision_normal += {1, 0}
 			}
-
 			if collision_normal != 0 {
 				ball_dir = reflect(ball_dir, collision_normal)
 			}
 		}
 
-		// DRAWING
+		block_x_loop: for x in 0 ..< NUM_BLOCKS_X {
+			for y in 0 ..< NUM_BLOCKS_Y {
+				if blocks[x][y] == false {
+					continue
+				}
+				block_rect := calc_block_rect(x, y)
+				if rl.CheckCollisionCircleRec(ball_pos, BALL_RADIUS, block_rect) {
+					collision_normal: rl.Vector2
+					if previous_ball_pos.y < block_rect.y {
+						collision_normal += {0, -1}
+					}
+					if previous_ball_pos.y > block_rect.y + block_rect.height {
+						collision_normal += {0, 1}
+					}
+					if previous_ball_pos.x < block_rect.x {
+						collision_normal += {-1, 0}
+					}
+					if previous_ball_pos.x > block_rect.x + block_rect.width {
+						collision_normal += {1, 0}
+					}
+					if block_exists(x + int(collision_normal.x), y) {
+						collision_normal.x = 0
+					}
+					if block_exists(x, y + int(collision_normal.y)) {
+						collision_normal.y = 0
+					}
+					if collision_normal != 0 {
+						ball_dir = reflect(ball_dir, collision_normal)
+					}
+					blocks[x][y] = false // Destroy block
+					break block_x_loop
+				}
+			}
+		}
 
 		rl.BeginDrawing()
 		rl.ClearBackground({150, 190, 220, 255})
@@ -184,12 +226,9 @@ main :: proc() {
 				if blocks[x][y] == false {
 					continue
 				}
-				block_rect := rl.Rectangle {
-					f32(20 + x * BLOCK_WIDTH),
-					f32(40 + y * BLOCK_HEIGHT),
-					BLOCK_WIDTH,
-					BLOCK_HEIGHT,
-				}
+
+				block_rect := calc_block_rect(x, y)
+
 				top_left := rl.Vector2{block_rect.x, block_rect.y}
 				top_right := rl.Vector2{block_rect.x + block_rect.width, block_rect.y}
 				bottom_left := rl.Vector2{block_rect.x, block_rect.y + block_rect.height}
@@ -197,6 +236,7 @@ main :: proc() {
 					block_rect.x + block_rect.width,
 					block_rect.y + block_rect.height,
 				}
+
 				rl.DrawRectangleRec(block_rect, block_color_values[row_colors[y]])
 				rl.DrawLineEx(top_left, top_right, 1, {255, 255, 150, 100})
 				rl.DrawLineEx(top_left, bottom_left, 1, {255, 255, 150, 100})
