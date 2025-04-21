@@ -3,6 +3,7 @@ package breakout
 import "core:fmt"
 import "core:math"
 import "core:math/linalg"
+import "core:math/rand"
 import rl "vendor:raylib"
 
 SCREEN_SIZE :: 320
@@ -99,10 +100,15 @@ block_exists :: proc(x, y: int) -> bool {
 main :: proc() {
 	rl.SetConfigFlags({.VSYNC_HINT})
 	rl.InitWindow(960, 960, "Breakout")
+	rl.InitAudioDevice()
 	rl.SetTargetFPS(60)
 
 	ball_texture := rl.LoadTexture("ball.png")
 	paddle_texture := rl.LoadTexture("paddle.png")
+
+	hit_block_sound := rl.LoadSound("hit_block.wav")
+	hit_paddle_sound := rl.LoadSound("hit_paddle.wav")
+	game_over_sound := rl.LoadSound("game_over.wav")
 
 	restart()
 
@@ -148,6 +154,7 @@ main :: proc() {
 
 		if !game_over && ball_pos.y > SCREEN_SIZE + BALL_RADIUS * 6 {
 			game_over = true
+			rl.PlaySound(game_over_sound)
 		}
 
 		paddle_move_velocity: f32
@@ -191,6 +198,8 @@ main :: proc() {
 			if collision_normal != 0 {
 				ball_dir = reflect(ball_dir, collision_normal)
 			}
+
+			rl.PlaySound(hit_paddle_sound)
 		}
 
 		block_x_loop: for x in 0 ..< NUM_BLOCKS_X {
@@ -225,6 +234,8 @@ main :: proc() {
 					blocks[x][y] = false // Destroy block
 					row_color := row_colors[y]
 					score += block_color_score[row_color]
+					rl.SetSoundPitch(hit_block_sound, rand.float32_range(0.8, 1.2))
+					rl.PlaySound(hit_block_sound)
 					break block_x_loop
 				}
 			}
@@ -300,5 +311,6 @@ main :: proc() {
 		free_all(context.temp_allocator)
 	}
 
+	rl.CloseAudioDevice()
 	rl.CloseWindow()
 }
