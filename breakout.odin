@@ -1,5 +1,6 @@
 package breakout
 
+import "core:fmt"
 import "core:math"
 import "core:math/linalg"
 import rl "vendor:raylib"
@@ -43,6 +44,13 @@ block_color_values := [Block_Color]rl.Color {
 	.Red    = {250, 90, 85, 255},
 }
 
+block_color_score := [Block_Color]int {
+	.Yellow = 2,
+	.Green  = 4,
+	.Orange = 6,
+	.Red    = 10,
+}
+
 blocks: [NUM_BLOCKS_X][NUM_BLOCKS_Y]bool
 
 paddle_pos_x: f32
@@ -52,10 +60,13 @@ ball_dir: rl.Vector2
 
 started: bool
 
+score: int
+
 restart :: proc() {
 	paddle_pos_x = SCREEN_SIZE / 2 - PADDLE_WIDTH / 2
 	ball_pos = {SCREEN_SIZE / 2, BALL_START_Y}
 	started = false
+	score = 0
 
 	for x in 0 ..< NUM_BLOCKS_X {
 		for y in 0 ..< NUM_BLOCKS_Y {
@@ -204,6 +215,8 @@ main :: proc() {
 						ball_dir = reflect(ball_dir, collision_normal)
 					}
 					blocks[x][y] = false // Destroy block
+					row_color := row_colors[y]
+					score += block_color_score[row_color]
 					break block_x_loop
 				}
 			}
@@ -245,8 +258,13 @@ main :: proc() {
 			}
 		}
 
+		score_text := fmt.ctprint(score)
+		rl.DrawText(score_text, 5, 5, 10, rl.WHITE)
+
 		rl.EndMode2D()
 		rl.EndDrawing()
+
+		free_all(context.temp_allocator)
 	}
 
 	rl.CloseWindow()
