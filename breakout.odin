@@ -60,6 +60,8 @@ ball_dir: rl.Vector2
 
 started: bool
 
+game_over: bool
+
 score: int
 
 restart :: proc() {
@@ -67,6 +69,7 @@ restart :: proc() {
 	ball_pos = {SCREEN_SIZE / 2, BALL_START_Y}
 	started = false
 	score = 0
+	game_over = false
 
 	for x in 0 ..< NUM_BLOCKS_X {
 		for y in 0 ..< NUM_BLOCKS_Y {
@@ -114,6 +117,10 @@ main :: proc() {
 				ball_dir = linalg.normalize0(ball_to_paddle)
 				started = true
 			}
+		} else if game_over {
+			if rl.IsKeyPressed(.SPACE) {
+				restart()
+			}
 		} else {
 			dt = rl.GetFrameTime()
 		}
@@ -136,8 +143,8 @@ main :: proc() {
 			ball_dir = reflect(ball_dir, {0, 1})
 		}
 
-		if ball_pos.y > SCREEN_SIZE + BALL_RADIUS * 6 {
-			restart()
+		if !game_over && ball_pos.y > SCREEN_SIZE + BALL_RADIUS * 6 {
+			game_over = true
 		}
 
 		paddle_move_velocity: f32
@@ -149,8 +156,6 @@ main :: proc() {
 		if rl.IsKeyDown(.RIGHT) || rl.IsKeyDown(.D) {
 			paddle_move_velocity += PADDLE_SPEED
 		}
-
-		if rl.IsKeyPressed(.R) {restart()}
 
 		paddle_pos_x += paddle_move_velocity * dt
 		paddle_pos_x = clamp(paddle_pos_x, 0, SCREEN_SIZE - PADDLE_WIDTH)
@@ -259,7 +264,32 @@ main :: proc() {
 		}
 
 		score_text := fmt.ctprint(score)
+
 		rl.DrawText(score_text, 5, 5, 10, rl.WHITE)
+
+		if !started {
+			start_text := fmt.ctprint("Start: SPACE")
+			start_text_width := rl.MeasureText(start_text, 15)
+			rl.DrawText(
+				start_text,
+				SCREEN_SIZE / 2 - start_text_width / 2,
+				BALL_START_Y - 30,
+				15,
+				rl.WHITE,
+			)
+		}
+
+		if game_over {
+			game_over_text := fmt.ctprintf("Score: %v. Reset: SPACE", score)
+			game_over_text_width := rl.MeasureText(game_over_text, 15)
+			rl.DrawText(
+				game_over_text,
+				SCREEN_SIZE / 2 - game_over_text_width / 2,
+				BALL_START_Y - 30,
+				15,
+				rl.WHITE,
+			)
+		}
 
 		rl.EndMode2D()
 		rl.EndDrawing()
